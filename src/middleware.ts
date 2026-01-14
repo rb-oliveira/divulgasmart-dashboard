@@ -58,15 +58,19 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // Protect all routes except /login and static files
-  if (!user && !request.nextUrl.pathname.startsWith('/login')) {
+  const isPublicRoute =
+    request.nextUrl.pathname.startsWith('/login') ||
+    request.nextUrl.pathname.startsWith('/register')
+
+  // Protect all routes except public ones and static files
+  if (!user && !isPublicRoute) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
   }
 
-  // Redirect to dashboard if logged in and trying to access /login
-  if (user && request.nextUrl.pathname.startsWith('/login')) {
+  // Redirect to dashboard if logged in and trying to access public routes
+  if (user && isPublicRoute) {
     const url = request.nextUrl.clone()
     url.pathname = '/lojas'
     return NextResponse.redirect(url)
