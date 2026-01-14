@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
@@ -165,7 +166,7 @@ export default function LoginPage() {
               Esqueceu a senha?
             </div>
             <div>
-              Não tem conta? <span className="text-primary font-medium hover:underline cursor-pointer">Crie uma agora</span>
+              Não tem conta? <Link href="/register" className="text-primary font-medium hover:underline cursor-pointer">Crie uma agora</Link>
             </div>
           </CardFooter>
         </Card>
