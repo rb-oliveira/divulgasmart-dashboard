@@ -2,7 +2,8 @@
 
 import { useState } from "react"
 import { useQueryClient } from "@tanstack/react-query"
-import { Plus, Store, ExternalLink } from "lucide-react"
+import { Plus, Store, ExternalLink, LayoutGrid } from "lucide-react"
+import Link from "next/link"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
@@ -190,7 +191,9 @@ export default function LojasPage() {
                     <Store className="h-5 w-5" />
                   </div>
                   <div>
-                    <CardTitle>{store.name}</CardTitle>
+                    <Link href={`/lojas/${store.id}`} className="hover:underline">
+                      <CardTitle>{store.name}</CardTitle>
+                    </Link>
                     <CardDescription>/{store.slug}</CardDescription>
                   </div>
                 </div>
@@ -200,11 +203,17 @@ export default function LojasPage() {
                   Loja ativa e pronta para gerenciar ofertas e grupos.
                 </p>
               </CardContent>
-              <CardFooter>
-                <Button variant="outline" size="sm" className="w-full gap-2" asChild>
+              <CardFooter className="flex gap-2">
+                <Button variant="outline" size="sm" className="flex-1 gap-2" asChild>
+                  <Link href={`/lojas/${store.id}`}>
+                    <LayoutGrid className="h-4 w-4" />
+                    Gerenciar
+                  </Link>
+                </Button>
+                <Button variant="ghost" size="sm" className="gap-2" asChild>
                   <a href={`https://${store.slug}.divulgasmart.com`} target="_blank" rel="noreferrer">
                     <ExternalLink className="h-4 w-4" />
-                    Acessar Loja
+                    Ver
                   </a>
                 </Button>
               </CardFooter>
