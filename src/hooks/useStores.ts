@@ -8,6 +8,9 @@ export interface Store {
   id: string
   name: string
   slug: string
+  clickCount: number
+  whatsappClicks: number
+  telegramClicks: number
   userId: string
   createdAt: string
   updatedAt: string
