@@ -6,6 +6,7 @@ import {
   Users,
   Tag,
   ChevronRight,
+  MessageSquareHeart,
 } from "lucide-react"
 
 import {
@@ -43,6 +44,11 @@ const items = [
     title: "Ofertas",
     url: "/ofertas",
     icon: Tag,
+  },
+  {
+    title: "SmartChat",
+    url: "/smartchat",
+    icon: MessageSquareHeart,
   },
 ]
 
