@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
@@ -9,7 +9,7 @@ import { AutomationList } from '@/components/smartchat/automation-list';
 import { CreateAutomationDialog } from '@/components/smartchat/create-automation-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 
-export default function SmartChatPage() {
+function SmartChatPageContent() {
   const [profileId, setProfileId] = useState<string | undefined>();
   const params = useSearchParams();
   const { data: automations = [], isLoading } = useAutomations(profileId);
@@ -48,5 +48,13 @@ export default function SmartChatPage() {
         <AutomationList automations={automations} />
       )}
     </div>
+  );
+}
+
+export default function SmartChatPage() {
+  return (
+    <Suspense fallback={<div className="space-y-3">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}</div>}>
+      <SmartChatPageContent />
+    </Suspense>
   );
 }
