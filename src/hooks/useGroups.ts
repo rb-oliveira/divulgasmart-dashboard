@@ -1,8 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import api from "@/lib/api"
-import { useState, useEffect } from "react"
-import { supabase } from "@/lib/supabase"
-import { AuthChangeEvent, Session } from "@supabase/supabase-js"
 
 export interface Group {
   id: string
@@ -14,8 +11,8 @@ export interface Group {
   status: "ACTIVE" | "FULL" | "DISABLED"
   isActive: boolean
   type: "WHATSAPP" | "TELEGRAM"
-  storeId: string
-  store?: {
+  profileId: string
+  profile?: {
     name: string
     slug: string
   }
@@ -25,21 +22,21 @@ export interface Group {
 export interface CreateGroupData {
   name: string
   inviteLink: string
-  storeId: string
+  profileId: string
   type: "WHATSAPP" | "TELEGRAM"
 }
 
-export function useGroups(storeId?: string) {
+export function useGroups(profileId?: string) {
   const queryClient = useQueryClient()
 
   const groupsQuery = useQuery({
-    queryKey: ["groups", storeId],
+    queryKey: ["groups", profileId],
     queryFn: async () => {
-      if (!storeId) return []
-      const response = await api.get<Group[]>(`/groups/store/${storeId}`)
+      if (!profileId) return []
+      const response = await api.get<Group[]>(`/groups/profile/${profileId}`)
       return response.data
     },
-    enabled: !!storeId,
+    enabled: !!profileId,
   })
 
   const createGroupMutation = useMutation({
@@ -102,37 +99,17 @@ export function useGroups(storeId?: string) {
 }
 
 export function useAllGroups() {
-  const [userId, setUserId] = useState<string | null>(null)
-  const [isAuthLoading, setIsAuthLoading] = useState(true)
-
-  useEffect(() => {
-    async function getUser() {
-      const { data: { session } } = await supabase.auth.getSession()
-      setUserId(session?.user?.id ?? null)
-      setIsAuthLoading(false)
-    }
-    getUser()
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUserId(session?.user?.id ?? null)
-    })
-
-    return () => subscription.unsubscribe()
-  }, [])
-
   const groupsQuery = useQuery({
-    queryKey: ["all-groups", userId],
+    queryKey: ["all-groups"],
     queryFn: async () => {
-      if (!userId) return []
-      const response = await api.get<Group[]>(`/groups/user/${userId}`)
+      const response = await api.get<Group[]>("/groups/mine")
       return response.data
     },
-    enabled: !!userId,
   })
 
   return {
     groups: groupsQuery.data ?? [],
-    isLoading: groupsQuery.isLoading || isAuthLoading,
+    isLoading: groupsQuery.isLoading,
     isError: groupsQuery.isError,
   }
 }

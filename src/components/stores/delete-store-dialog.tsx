@@ -12,29 +12,27 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { toast } from "sonner"
-import { Store, useStores } from "@/hooks/useStores"
+import { Profile, useProfiles } from "@/hooks/useProfiles"
 import { useRouter } from "next/navigation"
 
-interface DeleteStoreDialogProps {
-  store: Store
+interface DeleteProfileDialogProps {
+  store: Profile
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
-export function DeleteStoreDialog({ store, open, onOpenChange }: DeleteStoreDialogProps) {
-  const { deleteStore, isDeleting } = useStores()
+export function DeleteStoreDialog({ store, open, onOpenChange }: DeleteProfileDialogProps) {
+  const { deleteProfile, isDeleting } = useProfiles()
   const router = useRouter()
 
   async function onDelete() {
     try {
-      await deleteStore(store.id)
-      toast.success("Loja excluída com sucesso!")
-      router.push("/lojas")
+      await deleteProfile(store.id)
+      toast.success("Perfil excluído com sucesso!")
+      router.push("/perfis")
     } catch (error: any) {
-      const message = error.response?.data?.message || "Erro ao excluir loja"
-      toast.error(message, {
-        duration: 5000,
-      })
+      const message = error.response?.data?.message || "Erro ao excluir perfil"
+      toast.error(message, { duration: 5000 })
     } finally {
       onOpenChange(false)
     }
@@ -46,24 +44,21 @@ export function DeleteStoreDialog({ store, open, onOpenChange }: DeleteStoreDial
         <AlertDialogHeader>
           <AlertDialogTitle>Você tem certeza absoluta?</AlertDialogTitle>
           <AlertDialogDescription>
-            Esta ação não pode ser desfeita. Isso excluirá permanentemente a loja{" "}
+            Esta ação não pode ser desfeita. Isso excluirá permanentemente o perfil{" "}
             <strong>{store.name}</strong> e removerá seus dados de nossos servidores.
             <br />
             <br />
-            <strong>Atenção:</strong> Lojas com grupos ativos não podem ser excluídas.
+            <strong>Atenção:</strong> Perfis com grupos ativos não podem ser excluídos.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
           <AlertDialogAction
-            onClick={(e: React.MouseEvent) => {
-              e.preventDefault()
-              onDelete()
-            }}
+            onClick={(e: React.MouseEvent) => { e.preventDefault(); onDelete() }}
             disabled={isDeleting}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
-            {isDeleting ? "Excluindo..." : "Excluir Loja"}
+            {isDeleting ? "Excluindo..." : "Excluir Perfil"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

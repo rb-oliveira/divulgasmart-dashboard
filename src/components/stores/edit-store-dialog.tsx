@@ -1,6 +1,5 @@
 "use client"
 
-import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -23,39 +22,36 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
-import { Store, useStores } from "@/hooks/useStores"
+import { Profile, useProfiles } from "@/hooks/useProfiles"
 
-const editStoreSchema = z.object({
+const editProfileSchema = z.object({
   name: z.string().min(3, "Nome deve ter pelo menos 3 caracteres"),
   slug: z.string().min(3, "Slug deve ter pelo menos 3 caracteres").regex(/^[a-z0-9-]+$/, "Slug inválido"),
 })
 
-type EditStoreValues = z.infer<typeof editStoreSchema>
+type EditProfileValues = z.infer<typeof editProfileSchema>
 
-interface EditStoreDialogProps {
-  store: Store
+interface EditProfileDialogProps {
+  store: Profile
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
-export function EditStoreDialog({ store, open, onOpenChange }: EditStoreDialogProps) {
-  const { updateStore, isUpdating } = useStores()
+export function EditStoreDialog({ store, open, onOpenChange }: EditProfileDialogProps) {
+  const { updateProfile, isUpdating } = useProfiles()
 
-  const form = useForm<EditStoreValues>({
-    resolver: zodResolver(editStoreSchema),
-    defaultValues: {
-      name: store.name,
-      slug: store.slug,
-    },
+  const form = useForm<EditProfileValues>({
+    resolver: zodResolver(editProfileSchema),
+    defaultValues: { name: store.name, slug: store.slug },
   })
 
-  async function onSubmit(values: EditStoreValues) {
+  async function onSubmit(values: EditProfileValues) {
     try {
-      await updateStore({ id: store.id, data: values })
-      toast.success("Loja atualizada com sucesso!")
+      await updateProfile({ id: store.id, data: values })
+      toast.success("Perfil atualizado com sucesso!")
       onOpenChange(false)
     } catch (error: any) {
-      toast.error(error.response?.data?.message || "Erro ao atualizar loja")
+      toast.error(error.response?.data?.message || "Erro ao atualizar perfil")
     }
   }
 
@@ -63,10 +59,8 @@ export function EditStoreDialog({ store, open, onOpenChange }: EditStoreDialogPr
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Editar Loja</DialogTitle>
-          <DialogDescription>
-            Altere as informações da sua loja abaixo.
-          </DialogDescription>
+          <DialogTitle>Editar Perfil</DialogTitle>
+          <DialogDescription>Altere as informações do perfil abaixo.</DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -75,9 +69,9 @@ export function EditStoreDialog({ store, open, onOpenChange }: EditStoreDialogPr
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Nome da Loja</FormLabel>
+                  <FormLabel>Nome do Perfil</FormLabel>
                   <FormControl>
-                    <Input placeholder="Minha Loja" {...field} />
+                    <Input placeholder="Meu Perfil" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -90,7 +84,7 @@ export function EditStoreDialog({ store, open, onOpenChange }: EditStoreDialogPr
                 <FormItem>
                   <FormLabel>Slug (URL personalizada)</FormLabel>
                   <FormControl>
-                    <Input placeholder="minha-loja" {...field} />
+                    <Input placeholder="meu-perfil" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

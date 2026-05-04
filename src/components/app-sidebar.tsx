@@ -2,10 +2,9 @@
 
 import {
   LayoutDashboard,
-  Store,
   Users,
   Tag,
-  ChevronRight,
+  UserCircle,
   MessageSquareHeart,
 } from "lucide-react"
 
@@ -25,31 +24,11 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 
 const items = [
-  {
-    title: "Dashboard",
-    url: "/",
-    icon: LayoutDashboard,
-  },
-  {
-    title: "Minhas Lojas",
-    url: "/lojas",
-    icon: Store,
-  },
-  {
-    title: "Grupos",
-    url: "/grupos",
-    icon: Users,
-  },
-  {
-    title: "Ofertas",
-    url: "/ofertas",
-    icon: Tag,
-  },
-  {
-    title: "SmartChat",
-    url: "/smartchat",
-    icon: MessageSquareHeart,
-  },
+  { title: "Dashboard", url: "/", icon: LayoutDashboard },
+  { title: "Meus Perfis", url: "/perfis", icon: UserCircle },
+  { title: "Grupos", url: "/grupos", icon: Users },
+  { title: "Ofertas", url: "/ofertas", icon: Tag },
+  { title: "SmartChat", url: "/smartchat", icon: MessageSquareHeart },
 ]
 
 export function AppSidebar() {
@@ -72,11 +51,7 @@ export function AppSidebar() {
             <SidebarMenu>
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={pathname === item.url}
-                    tooltip={item.title}
-                  >
+                  <SidebarMenuButton asChild isActive={pathname === item.url} tooltip={item.title}>
                     <Link href={item.url}>
                       <item.icon className="h-4 w-4" />
                       <span>{item.title}</span>
@@ -89,9 +64,7 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter className="p-4">
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          v1.0.0
-        </div>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">v1.0.0</div>
       </SidebarFooter>
     </Sidebar>
   )

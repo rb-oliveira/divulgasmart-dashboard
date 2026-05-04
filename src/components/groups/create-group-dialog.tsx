@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { useGroups } from "@/hooks/useGroups"
-import { useStores } from "@/hooks/useStores"
+import { useProfiles } from "@/hooks/useProfiles"
 import {
   Dialog,
   DialogContent,
@@ -37,51 +37,43 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 const formSchema = z.object({
   name: z.string().min(2, "O nome deve ter pelo menos 2 caracteres"),
   inviteLink: z.string().url("Link inválido"),
-  storeId: z.string().min(1, "Selecione uma loja"),
+  profileId: z.string().min(1, "Selecione um perfil"),
   type: z.enum(["WHATSAPP", "TELEGRAM"]),
 })
 
 interface CreateGroupDialogProps {
-  storeId?: string
+  profileId?: string
 }
 
-export function CreateGroupDialog({ storeId }: CreateGroupDialogProps) {
+export function CreateGroupDialog({ profileId }: CreateGroupDialogProps) {
   const [open, setOpen] = useState(false)
-  const { stores } = useStores()
-  const { createGroup, isCreating } = useGroups(storeId)
+  const { profiles } = useProfiles()
+  const { createGroup, isCreating } = useGroups(profileId)
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
       inviteLink: "",
-      storeId: storeId || "",
+      profileId: profileId || "",
       type: "WHATSAPP",
     },
   })
 
-  // Update form if storeId prop changes
   useEffect(() => {
-    if (storeId) {
-      form.setValue("storeId", storeId)
-    }
-  }, [storeId, form])
+    if (profileId) form.setValue("profileId", profileId)
+  }, [profileId, form])
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
       await createGroup({
         name: values.name,
         inviteLink: values.inviteLink,
-        storeId: values.storeId,
+        profileId: values.profileId,
         type: values.type,
       })
       toast.success("Grupo criado com sucesso!")
-      form.reset({
-        name: "",
-        inviteLink: "",
-        storeId: storeId || "",
-        type: "WHATSAPP",
-      })
+      form.reset({ name: "", inviteLink: "", profileId: profileId || "", type: "WHATSAPP" })
       setOpen(false)
     } catch (error) {
       toast.error("Erro ao criar grupo")
@@ -110,11 +102,7 @@ export function CreateGroupDialog({ storeId }: CreateGroupDialogProps) {
                 <FormItem className="space-y-2">
                   <FormLabel>Plataforma</FormLabel>
                   <FormControl>
-                    <Tabs
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      className="w-full"
-                    >
+                    <Tabs onValueChange={field.onChange} defaultValue={field.value} className="w-full">
                       <TabsList className="grid w-full grid-cols-2">
                         <TabsTrigger value="WHATSAPP" className="flex items-center gap-2">
                           <MessageCircle className="h-4 w-4" /> WhatsApp
@@ -129,23 +117,23 @@ export function CreateGroupDialog({ storeId }: CreateGroupDialogProps) {
                 </FormItem>
               )}
             />
-            {!storeId && (
+            {!profileId && (
               <FormField
                 control={form.control}
-                name="storeId"
+                name="profileId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Loja</FormLabel>
+                    <FormLabel>Perfil</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Selecione uma loja" />
+                          <SelectValue placeholder="Selecione um perfil" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {stores.map((store) => (
-                          <SelectItem key={store.id} value={store.id}>
-                            {store.name}
+                        {profiles.map((profile) => (
+                          <SelectItem key={profile.id} value={profile.id}>
+                            {profile.name}
                           </SelectItem>
                         ))}
                       </SelectContent>

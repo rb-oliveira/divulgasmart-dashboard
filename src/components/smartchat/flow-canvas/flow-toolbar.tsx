@@ -10,6 +10,7 @@ const NODE_PALETTE = [
   { type: 'SEND_DM_BUTTONS', label: 'DM c/ Botões' },
   { type: 'SEND_DM_IMAGE', label: 'DM Imagem' },
   { type: 'SEND_DM_LINK_CARD', label: 'Link Card' },
+  { type: 'CONDITION', label: 'Condicao' },
   { type: 'DELAY', label: 'Delay' },
 ];
 

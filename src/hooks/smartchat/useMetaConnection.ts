@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
 
 export interface MetaConnection {
@@ -17,5 +17,16 @@ export function useMetaConnections(profileId: string | undefined) {
     queryFn: () =>
       api.get('/smartchat/oauth/connections', { params: { profileId } }).then((r) => r.data),
     enabled: !!profileId,
+  });
+}
+
+export function useConnectMeta() {
+  return useMutation({
+    mutationFn: async (profileId: string) => {
+      const { data } = await api.get<{ url: string }>('/smartchat/oauth/url', {
+        params: { profileId },
+      });
+      return data.url;
+    },
   });
 }

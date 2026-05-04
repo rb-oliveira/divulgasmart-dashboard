@@ -1,9 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { Plus, X } from 'lucide-react';
+import { toast } from 'sonner';
 import {
   Dialog,
   DialogContent,
@@ -23,15 +25,13 @@ import {
 } from '@/components/ui/select';
 import { useCreateAutomation } from '@/hooks/smartchat/useAutomations';
 import { useMetaConnections } from '@/hooks/smartchat/useMetaConnection';
-import { toast } from 'sonner';
-import { Plus, X } from 'lucide-react';
 
 const schema = z.object({
-  name: z.string().min(1, 'Nome obrigatório'),
-  postId: z.string().min(1, 'ID do post obrigatório'),
-  postUrl: z.string().url().optional().or(z.literal('')),
+  name: z.string().trim().min(1, 'Nome obrigatorio'),
+  postId: z.string().trim().min(1, 'ID do post obrigatorio'),
+  postUrl: z.string().trim().url('URL invalida').optional().or(z.literal('')),
   platform: z.enum(['INSTAGRAM', 'FACEBOOK']),
-  connectionId: z.string().min(1, 'Selecione uma conexão'),
+  connectionId: z.string().trim().min(1, 'Selecione uma conexao'),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -43,156 +43,195 @@ interface Props {
 export function CreateAutomationDialog({ profileId }: Props) {
   const [open, setOpen] = useState(false);
   const [keywords, setKeywords] = useState<string[]>(['']);
-  const { data: connections = [] } = useMetaConnections(profileId);
+  const { data: connections = [], isLoading: isLoadingConnections } =
+    useMetaConnections(profileId);
   const createMutation = useCreateAutomation();
+  const hasConnections = connections.length > 0;
 
   const {
     register,
     handleSubmit,
     setValue,
-    formState: { errors },
     reset,
+    formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
+    defaultValues: {
+      name: '',
+      postId: '',
+      postUrl: '',
+      platform: 'INSTAGRAM',
+      connectionId: '',
+    },
   });
 
+  useEffect(() => {
+    if (connections.length === 1) {
+      setValue('connectionId', connections[0].id, { shouldValidate: true });
+    }
+  }, [connections, setValue]);
+
   const onSubmit = async (values: FormValues) => {
-    const kws = keywords.filter((k) => k.trim());
-    if (!kws.length) {
+    const normalizedKeywords = [...new Set(keywords.map((k) => k.trim()).filter(Boolean))];
+    if (!normalizedKeywords.length) {
       toast.error('Adicione pelo menos uma keyword');
       return;
     }
+
     try {
-      await createMutation.mutateAsync({ ...values, profileId, keywords: kws });
-      toast.success('Automação criada!');
+      await createMutation.mutateAsync({
+        ...values,
+        postUrl: values.postUrl || undefined,
+        profileId,
+        keywords: normalizedKeywords,
+      });
+      toast.success('Automacao criada!');
       setOpen(false);
       setKeywords(['']);
       reset();
     } catch {
-      toast.error('Erro ao criar automação');
+      toast.error('Erro ao criar automacao');
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>
+        <Button disabled={isLoadingConnections || !hasConnections}>
           <Plus className="mr-2 h-4 w-4" />
-          Nova Automação
+          Nova Automacao
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Nova Automação</DialogTitle>
+          <DialogTitle>Nova Automacao</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div>
-            <Label>Nome</Label>
-            <Input {...register('name')} placeholder="Ex: Promoção Maternidade" />
-            {errors.name && (
-              <p className="text-xs text-destructive mt-1">{errors.name.message}</p>
-            )}
+        {!hasConnections ? (
+          <div className="text-sm text-muted-foreground">
+            Conecte uma pagina Meta antes de criar automacoes.
           </div>
-
-          <div>
-            <Label>Plataforma</Label>
-            <Select
-              onValueChange={(v) => setValue('platform', v as 'INSTAGRAM' | 'FACEBOOK')}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecionar" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="INSTAGRAM">Instagram</SelectItem>
-                <SelectItem value="FACEBOOK">Facebook</SelectItem>
-              </SelectContent>
-            </Select>
-            {errors.platform && (
-              <p className="text-xs text-destructive mt-1">Selecione a plataforma</p>
-            )}
-          </div>
-
-          <div>
-            <Label>Conexão Meta</Label>
-            <Select onValueChange={(v) => setValue('connectionId', v)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecionar página" />
-              </SelectTrigger>
-              <SelectContent>
-                {connections.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.pageName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {connections.length === 0 && (
-              <p className="text-xs text-muted-foreground mt-1">
-                Conecte uma página primeiro nas configurações do perfil.
-              </p>
-            )}
-            {errors.connectionId && (
-              <p className="text-xs text-destructive mt-1">Selecione uma conexão</p>
-            )}
-          </div>
-
-          <div>
-            <Label>ID do Post monitorado</Label>
-            <Input {...register('postId')} placeholder="123456789_987654321" />
-            {errors.postId && (
-              <p className="text-xs text-destructive mt-1">{errors.postId.message}</p>
-            )}
-          </div>
-
-          <div>
-            <Label>URL do Post (opcional)</Label>
-            <Input
-              {...register('postUrl')}
-              placeholder="https://www.instagram.com/p/..."
-            />
-          </div>
-
-          <div>
-            <Label>Keywords (palavras que disparam a automação)</Label>
-            <div className="space-y-2 mt-1">
-              {keywords.map((kw, i) => (
-                <div key={i} className="flex gap-2">
-                  <Input
-                    value={kw}
-                    onChange={(e) => {
-                      const next = [...keywords];
-                      next[i] = e.target.value;
-                      setKeywords(next);
-                    }}
-                    placeholder="Ex: quero, link, produto"
-                  />
-                  {keywords.length > 1 && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setKeywords(keywords.filter((_, j) => j !== i))}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              ))}
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setKeywords([...keywords, ''])}
-              >
-                + Keyword
-              </Button>
+        ) : (
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <div>
+              <Label>Nome</Label>
+              <Input {...register('name')} placeholder="Ex: Promocao Maternidade" />
+              {errors.name && (
+                <p className="mt-1 text-xs text-destructive">{errors.name.message}</p>
+              )}
             </div>
-          </div>
 
-          <Button type="submit" className="w-full" disabled={createMutation.isPending}>
-            {createMutation.isPending ? 'Criando...' : 'Criar Automação'}
-          </Button>
-        </form>
+            <div>
+              <Label>Plataforma</Label>
+              <Select
+                defaultValue="INSTAGRAM"
+                onValueChange={(v) =>
+                  setValue('platform', v as 'INSTAGRAM' | 'FACEBOOK', {
+                    shouldValidate: true,
+                  })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecionar" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="INSTAGRAM">Instagram</SelectItem>
+                  <SelectItem value="FACEBOOK">Facebook</SelectItem>
+                </SelectContent>
+              </Select>
+              {errors.platform && (
+                <p className="mt-1 text-xs text-destructive">Selecione a plataforma</p>
+              )}
+            </div>
+
+            <div>
+              <Label>Conexao Meta</Label>
+              <Select
+                onValueChange={(v) =>
+                  setValue('connectionId', v, { shouldValidate: true })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecionar pagina" />
+                </SelectTrigger>
+                <SelectContent>
+                  {connections.map((connection) => (
+                    <SelectItem key={connection.id} value={connection.id}>
+                      {connection.pageName}
+                      {connection.instagramName ? ` / ${connection.instagramName}` : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.connectionId && (
+                <p className="mt-1 text-xs text-destructive">
+                  {errors.connectionId.message}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <Label>ID do Post monitorado</Label>
+              <Input {...register('postId')} placeholder="123456789_987654321" />
+              {errors.postId && (
+                <p className="mt-1 text-xs text-destructive">{errors.postId.message}</p>
+              )}
+            </div>
+
+            <div>
+              <Label>URL do Post</Label>
+              <Input
+                {...register('postUrl')}
+                placeholder="https://www.instagram.com/p/..."
+              />
+              {errors.postUrl && (
+                <p className="mt-1 text-xs text-destructive">{errors.postUrl.message}</p>
+              )}
+            </div>
+
+            <div>
+              <Label>Keywords</Label>
+              <div className="mt-1 space-y-2">
+                {keywords.map((keyword, index) => (
+                  <div key={index} className="flex gap-2">
+                    <Input
+                      value={keyword}
+                      onChange={(event) => {
+                        const next = [...keywords];
+                        next[index] = event.target.value;
+                        setKeywords(next);
+                      }}
+                      placeholder="Ex: quero, link, produto"
+                    />
+                    {keywords.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() =>
+                          setKeywords(keywords.filter((_, current) => current !== index))
+                        }
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setKeywords([...keywords, ''])}
+                >
+                  + Keyword
+                </Button>
+              </div>
+            </div>
+
+            <Button type="submit" className="w-full" disabled={createMutation.isPending}>
+              {createMutation.isPending ? 'Criando...' : 'Criar Automacao'}
+            </Button>
+          </form>
+        )}
       </DialogContent>
     </Dialog>
   );

@@ -65,7 +65,7 @@ export default function LoginPage() {
         return
       }
 
-      router.push("/lojas")
+      router.push("/perfis")
       router.refresh()
     } catch (e) {
       setError("Ocorreu um erro ao tentar fazer login. Tente novamente.")

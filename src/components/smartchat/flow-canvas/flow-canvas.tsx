@@ -18,6 +18,9 @@ import { TriggerNode } from './nodes/trigger-node';
 import { CommentReplyNode } from './nodes/comment-reply-node';
 import { SendDmNode } from './nodes/send-dm-node';
 import { SendDmButtonsNode } from './nodes/send-dm-buttons-node';
+import { SendDmImageNode } from './nodes/send-dm-image-node';
+import { SendDmLinkCardNode } from './nodes/send-dm-link-card-node';
+import { ConditionNode } from './nodes/condition-node';
 import { DelayNode } from './nodes/delay-node';
 import { NodeConfigPanel } from './node-config-panel';
 import { FlowToolbar } from './flow-toolbar';
@@ -29,8 +32,16 @@ const nodeTypes = {
   COMMENT_REPLY: CommentReplyNode,
   SEND_DM: SendDmNode,
   SEND_DM_BUTTONS: SendDmButtonsNode,
+  SEND_DM_IMAGE: SendDmImageNode,
+  SEND_DM_LINK_CARD: SendDmLinkCardNode,
+  CONDITION: ConditionNode,
   DELAY: DelayNode,
 };
+
+const REQUIRED_MESSAGE_NODES = new Set([
+  'COMMENT_REPLY',
+  'SEND_DM',
+]);
 
 interface DbNode {
   id: string;
@@ -85,8 +96,28 @@ export function FlowCanvas({ automationId, initialNodes = [] }: Props) {
   const saveFlow = useSaveFlow(automationId);
 
   const onConnect = useCallback(
-    (connection: Connection) => setEdges((eds) => addEdge(connection, eds)),
+    (connection: Connection) =>
+      setEdges((eds) => {
+        const withoutExistingTarget = eds.filter((edge) => edge.target !== connection.target);
+        return addEdge(connection, withoutExistingTarget);
+      }),
     [setEdges],
+  );
+
+  const onConnectWithData = useCallback(
+    (connection: Connection) => {
+      onConnect(connection);
+      if (connection.sourceHandle) {
+        setNodes((nds) =>
+          nds.map((node) =>
+            node.id === connection.target && node.type === 'CONDITION'
+              ? { ...node, data: { ...node.data, buttonId: connection.sourceHandle } }
+              : node,
+          ),
+        );
+      }
+    },
+    [onConnect, setNodes],
   );
 
   const onNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
@@ -104,8 +135,10 @@ export function FlowCanvas({ automationId, initialNodes = [] }: Props) {
   const addNode = useCallback(
     (type: string) => {
       const id = crypto.randomUUID();
-      const defaultData: Record<string, any> =
-        type === 'SEND_DM_BUTTONS' ? { message: '', buttons: [] } : {};
+      const defaultData: Record<string, any> = {
+        SEND_DM_BUTTONS: { message: '', buttons: [] },
+        DELAY: { delaySeconds: 60 },
+      }[type] ?? {};
       setNodes((nds) => [
         ...nds,
         {
@@ -119,7 +152,60 @@ export function FlowCanvas({ automationId, initialNodes = [] }: Props) {
     [setNodes],
   );
 
+  const validateFlow = () => {
+    const triggerNodes = nodes.filter((node) => node.type === 'TRIGGER');
+    if (triggerNodes.length !== 1) return 'O fluxo deve conter exatamente um gatilho.';
+
+    for (const node of nodes) {
+      const incomingEdge = edges.find((edge) => edge.target === node.id);
+      if (node.type !== 'TRIGGER' && !incomingEdge) {
+        return `Conecte o no ${node.type?.replace(/_/g, ' ')} ao fluxo.`;
+      }
+
+      const data = node.data as Record<string, any>;
+      if (REQUIRED_MESSAGE_NODES.has(node.type ?? '') && !String(data.message ?? '').trim()) {
+        return `Configure a mensagem do no ${node.type?.replace(/_/g, ' ')}.`;
+      }
+      if (node.type === 'SEND_DM_IMAGE' && !String(data.imageUrl ?? '').trim()) {
+        return 'Configure a URL da imagem.';
+      }
+      if (node.type === 'SEND_DM_LINK_CARD') {
+        if (!String(data.title ?? '').trim()) return 'Configure o titulo do link card.';
+        if (!String(data.url ?? '').trim()) return 'Configure a URL do link card.';
+      }
+      if (
+        node.type === 'CONDITION' &&
+        !String(data.buttonId ?? incomingEdge?.sourceHandle ?? '').trim()
+      ) {
+        return 'Configure o ID do botao da condicao.';
+      }
+      if (node.type === 'SEND_DM_BUTTONS') {
+        const buttons = Array.isArray(data.buttons) ? data.buttons : [];
+        if (!String(data.message ?? '').trim()) return 'Configure a mensagem dos botoes.';
+        if (!buttons.length) return 'Adicione pelo menos um botao.';
+        if (buttons.length > 3) return 'Use no maximo 3 botoes.';
+        if (buttons.some((button) => !button.id || !String(button.label ?? '').trim())) {
+          return 'Preencha o texto de todos os botoes.';
+        }
+      }
+      if (node.type === 'DELAY') {
+        const delaySeconds = Number(data.delaySeconds);
+        if (!Number.isFinite(delaySeconds) || delaySeconds < 1) {
+          return 'Configure um delay maior que zero.';
+        }
+      }
+    }
+
+    return null;
+  };
+
   const handleSave = async () => {
+    const validationError = validateFlow();
+    if (validationError) {
+      toast.error(validationError);
+      return;
+    }
+
     const dbNodes = nodes.map((n, i) => {
       const edge = edges.find((e) => e.target === n.id);
       return {
@@ -153,7 +239,7 @@ export function FlowCanvas({ automationId, initialNodes = [] }: Props) {
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
+        onConnect={onConnectWithData}
         onNodeClick={onNodeClick}
         nodeTypes={nodeTypes}
         fitView
